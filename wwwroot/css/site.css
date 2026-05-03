@@ -1,4 +1,12 @@
-/* IISWeb - lightweight overrides on top of Bootstrap 5 */
+/* IISWeb — lightweight overrides on top of Bootstrap 5 */
+
+:root {
+    /* Replace the default vivid-blue focus ring with a sober neutral one. */
+    --iisweb-focus: rgba(33, 37, 41, 0.18);
+    --iisweb-focus-strong: rgba(33, 37, 41, 0.30);
+    --iisweb-border-focus: #6c757d;
+}
+
 html, body {
     min-height: 100%;
 }
@@ -16,9 +24,90 @@ main {
     word-break: break-word;
 }
 
+/* ------------------------------------------------------------------
+   Focus styling — kill Bootstrap's blue glow on inputs / buttons /
+   links and replace it with a thinner, neutral ring. Visible enough
+   for keyboard accessibility, calm enough not to hurt the eyes.
+   ------------------------------------------------------------------ */
+
+.form-control:focus,
+.form-select:focus,
+.form-control:focus-visible,
+.form-select:focus-visible,
+input.form-control:focus,
+textarea.form-control:focus,
+.input-group:focus-within > .form-control,
+.input-group:focus-within > .form-select {
+    border-color: var(--iisweb-border-focus);
+    outline: 0;
+    box-shadow: 0 0 0 0.15rem var(--iisweb-focus);
+}
+
+.form-check-input:focus {
+    border-color: var(--iisweb-border-focus);
+    box-shadow: 0 0 0 0.15rem var(--iisweb-focus);
+}
+
+.form-check-input:checked {
+    background-color: #495057;
+    border-color: #495057;
+}
+
+/* Buttons: never show focus from a mouse click, only from keyboard */
+.btn:focus,
+.btn.focus {
+    box-shadow: none;
+}
+.btn:focus-visible {
+    outline: 0;
+    box-shadow: 0 0 0 0.15rem var(--iisweb-focus-strong);
+}
+
+/* Same treatment for links & nav items */
+a:focus,
+.nav-link:focus,
+.navbar-brand:focus,
+.page-link:focus {
+    outline: 0;
+    box-shadow: none;
+}
+a:focus-visible,
+.nav-link:focus-visible,
+.navbar-brand:focus-visible,
+.page-link:focus-visible {
+    outline: 0;
+    border-radius: 2px;
+    box-shadow: 0 0 0 0.15rem var(--iisweb-focus-strong);
+}
+
+/* Search input gets a slightly lighter resting border so the focus
+   transition feels intentional. */
+#poolSearch {
+    border-color: #d0d4d8;
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+/* Subtle hover on cards & list rows */
+.card.shadow-sm {
+    transition: box-shadow .15s ease, transform .15s ease;
+}
+.card.shadow-sm:hover {
+    box-shadow: 0 .25rem .65rem rgba(0, 0, 0, .07) !important;
+}
+
+.table-hover > tbody > tr:hover > * {
+    background-color: rgba(0, 0, 0, .025);
+}
+
 /* Make action buttons stretch on very small viewports */
 @media (max-width: 480px) {
     .card-body form {
         flex: 1 1 100%;
     }
+}
+
+/* Reduce table density a touch on the list view so it breathes */
+#poolsList .table > :not(caption) > * > * {
+    padding-top: .55rem;
+    padding-bottom: .55rem;
 }

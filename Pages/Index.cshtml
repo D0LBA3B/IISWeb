@@ -2,14 +2,26 @@
 @model IndexModel
 @{
     ViewData["Title"] = "Application Pools";
+    var totalCount = Model.Pools.Count;
+    var isAdmin = User.IsInRole(Roles.Admin);
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-    <h1 class="h4 m-0">Application Pools</h1>
+<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+    <h1 class="h4 m-0">
+        Application Pools
+        <span class="text-muted small fw-normal" id="poolCount">(@totalCount)</span>
+    </h1>
     <form method="get" class="m-0">
-        <button class="btn btn-outline-secondary btn-sm" type="submit">Refresh</button>
+        <button class="btn btn-outline-secondary btn-sm" type="submit" title="Refresh">Refresh</button>
     </form>
 </div>
+
+@if (Model.LoadError is { } err)
+{
+    <div class="alert alert-danger" role="alert">
+        <strong>Error:</strong> @err
+    </div>
+}
 
 @if (Model.Status is { } status)
 {
@@ -19,70 +31,130 @@
     </div>
 }
 
-@if (Model.LoadError is { } err)
+@if (Model.Pools.Any())
 {
-    <div class="alert alert-danger" role="alert">
-        <strong>Error:</strong> @err
+    <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+        <input type="search" id="poolSearch" class="form-control form-control-sm flex-grow-1"
+               placeholder="Filter by name…" autocomplete="off" style="max-width: 320px" />
+        <div class="btn-group btn-group-sm" role="group" aria-label="View" id="viewToggle">
+            <button type="button" class="btn btn-outline-secondary" data-view="cards" aria-pressed="true">Cards</button>
+            <button type="button" class="btn btn-outline-secondary" data-view="list"  aria-pressed="false">List</button>
+        </div>
     </div>
-}
 
-@if (!Model.Pools.Any() && Model.LoadError is null)
-{
-    <p class="text-muted">No application pools to display. Check the <code>App:AllowedAppPools</code> configuration in <code>appsettings.json</code> and that this app has IIS administration rights.</p>
-}
-else
-{
-    <div class="row g-3">
-    @foreach (var p in Model.Pools)
-    {
-        <div class="col-12 col-md-6 col-lg-4">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
-                    <h2 class="h6 mb-2 text-break">@p.Name</h2>
-                    <div class="mb-3">
-                        <span class="badge text-bg-@StateBadge(p.State)">@p.State</span>
-                        <small class="text-muted ms-2 d-inline-block">
-                            @(string.IsNullOrEmpty(p.ManagedRuntimeVersion) ? "No managed code" : p.ManagedRuntimeVersion)
-                            · @p.IdentityType
-                        </small>
-                    </div>
-
-                    @if (User.IsInRole(Roles.Admin))
-                    {
-                        <div class="d-flex flex-wrap gap-2">
-                            <form method="post" asp-page-handler="Start" class="m-0 flex-grow-1 flex-md-grow-0"
-                                  data-confirm="Start pool '@p.Name' ?">
-                                <input type="hidden" name="name" value="@p.Name" />
-                                <button class="btn btn-success btn-sm w-100" type="submit"
-                                        @(IsRunning(p.State) ? "disabled" : "")>Start</button>
-                            </form>
-                            <form method="post" asp-page-handler="Stop" class="m-0 flex-grow-1 flex-md-grow-0"
-                                  data-confirm="Stop pool '@p.Name' ?&#10;Applications served by this pool will become unavailable.">
-                                <input type="hidden" name="name" value="@p.Name" />
-                                <button class="btn btn-danger btn-sm w-100" type="submit"
-                                        @(IsStopped(p.State) ? "disabled" : "")>Stop</button>
-                            </form>
-                            <form method="post" asp-page-handler="Recycle" class="m-0 flex-grow-1 flex-md-grow-0"
-                                  data-confirm="Recycle pool '@p.Name' ?&#10;In-flight requests may be interrupted.">
-                                <input type="hidden" name="name" value="@p.Name" />
-                                <button class="btn btn-warning btn-sm w-100" type="submit"
-                                        @(p.State != "Started" ? "disabled" : "")>Recycle</button>
-                            </form>
+    @* ---------- Cards view ---------- *@
+    <div class="row g-3" id="poolsCards" data-view-target="cards">
+        @foreach (var p in Model.Pools)
+        {
+            <div class="col-12 col-md-6 col-lg-4" data-pool-item data-pool-name="@p.Name.ToLowerInvariant()">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <h2 class="h6 mb-2 text-break">@p.Name</h2>
+                        <div class="mb-3">
+                            <span class="badge text-bg-@StateBadge(p.State)">@p.State</span>
+                            <small class="text-muted ms-2 d-inline-block">
+                                @(string.IsNullOrEmpty(p.ManagedRuntimeVersion) ? "No managed code" : p.ManagedRuntimeVersion)
+                                · @p.IdentityType
+                            </small>
                         </div>
-                    }
-                    else
-                    {
-                        <p class="text-muted small mb-0">View only.</p>
-                    }
+
+                        @if (isAdmin)
+                        {
+                            <div class="d-flex flex-wrap gap-2">
+                                <form method="post" asp-page-handler="Start" class="m-0 flex-grow-1 flex-md-grow-0"
+                                      data-confirm="Start pool '@p.Name' ?">
+                                    <input type="hidden" name="name" value="@p.Name" />
+                                    <button class="btn btn-success btn-sm w-100" type="submit"
+                                            @(IsRunning(p.State) ? "disabled" : "")>Start</button>
+                                </form>
+                                <form method="post" asp-page-handler="Stop" class="m-0 flex-grow-1 flex-md-grow-0"
+                                      data-confirm="Stop pool '@p.Name' ?&#10;Applications served by this pool will become unavailable.">
+                                    <input type="hidden" name="name" value="@p.Name" />
+                                    <button class="btn btn-danger btn-sm w-100" type="submit"
+                                            @(IsStopped(p.State) ? "disabled" : "")>Stop</button>
+                                </form>
+                                <form method="post" asp-page-handler="Recycle" class="m-0 flex-grow-1 flex-md-grow-0"
+                                      data-confirm="Recycle pool '@p.Name' ?&#10;In-flight requests may be interrupted.">
+                                    <input type="hidden" name="name" value="@p.Name" />
+                                    <button class="btn btn-warning btn-sm w-100" type="submit"
+                                            @(p.State != "Started" ? "disabled" : "")>Recycle</button>
+                                </form>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-muted small mb-0">View only.</p>
+                        }
+                    </div>
                 </div>
             </div>
-        </div>
-    }
+        }
     </div>
+
+    @* ---------- List view ---------- *@
+    <div class="table-responsive d-none" id="poolsList" data-view-target="list">
+        <table class="table table-sm table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th class="text-nowrap">State</th>
+                    <th class="d-none d-md-table-cell">Runtime</th>
+                    <th class="d-none d-lg-table-cell">Identity</th>
+                    @if (isAdmin)
+                    {
+                        <th class="text-end">Actions</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Model.Pools)
+                {
+                    <tr data-pool-item data-pool-name="@p.Name.ToLowerInvariant()">
+                        <td class="text-break">@p.Name</td>
+                        <td><span class="badge text-bg-@StateBadge(p.State)">@p.State</span></td>
+                        <td class="d-none d-md-table-cell">
+                            <small class="text-muted">@(string.IsNullOrEmpty(p.ManagedRuntimeVersion) ? "No managed code" : p.ManagedRuntimeVersion)</small>
+                        </td>
+                        <td class="d-none d-lg-table-cell"><small class="text-muted">@p.IdentityType</small></td>
+                        @if (isAdmin)
+                        {
+                            <td class="text-end text-nowrap">
+                                <form method="post" asp-page-handler="Start" class="d-inline-block m-0 me-1"
+                                      data-confirm="Start pool '@p.Name' ?">
+                                    <input type="hidden" name="name" value="@p.Name" />
+                                    <button class="btn btn-success btn-sm" type="submit"
+                                            @(IsRunning(p.State) ? "disabled" : "")>Start</button>
+                                </form>
+                                <form method="post" asp-page-handler="Stop" class="d-inline-block m-0 me-1"
+                                      data-confirm="Stop pool '@p.Name' ?&#10;Applications served by this pool will become unavailable.">
+                                    <input type="hidden" name="name" value="@p.Name" />
+                                    <button class="btn btn-danger btn-sm" type="submit"
+                                            @(IsStopped(p.State) ? "disabled" : "")>Stop</button>
+                                </form>
+                                <form method="post" asp-page-handler="Recycle" class="d-inline-block m-0"
+                                      data-confirm="Recycle pool '@p.Name' ?&#10;In-flight requests may be interrupted.">
+                                    <input type="hidden" name="name" value="@p.Name" />
+                                    <button class="btn btn-warning btn-sm" type="submit"
+                                            @(p.State != "Started" ? "disabled" : "")>Recycle</button>
+                                </form>
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <p id="noResults" class="text-muted text-center py-3 d-none">No pools match your filter.</p>
+}
+else if (Model.LoadError is null)
+{
+    <p class="text-muted">No application pools to display. Check the <code>App:AllowedAppPools</code> configuration in <code>appsettings.json</code> and that this app has IIS administration rights.</p>
 }
 
 @section Scripts {
     <script src="~/js/confirm.js" asp-append-version="true"></script>
+    <script src="~/js/pools-ui.js" asp-append-version="true"></script>
 }
 
 @functions {
