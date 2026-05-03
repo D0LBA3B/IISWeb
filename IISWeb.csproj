@@ -17,8 +17,9 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <!-- Microsoft.Web.Administration depends on this assembly at runtime; not in the default .NET shared framework. -->
+    <!-- Microsoft.Web.Administration depends on these assemblies at runtime; not in the default .NET shared framework. -->
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.0" />
+    <PackageReference Include="System.Security.Permissions" Version="10.0.0" />
   </ItemGroup>
 
   <!--
