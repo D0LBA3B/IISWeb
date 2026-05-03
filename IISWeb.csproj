@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>IISWeb</RootNamespace>
+    <AssemblyName>IISWeb</AssemblyName>
+    <UserSecretsId>iisweb-user-secrets</UserSecretsId>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <!-- Microsoft.Web.Administration depends on this assembly at runtime; not in the default .NET shared framework. -->
+    <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.0" />
+  </ItemGroup>
+
+  <!--
+    Microsoft.Web.Administration is part of the IIS installation. We reference the
+    in-box assembly to avoid pulling an unofficial NuGet copy.  The build host must
+    have IIS (or at least the IIS management tools) installed; this is true on every
+    Windows Server target where the app will run.
+  -->
+  <ItemGroup>
+    <Reference Include="Microsoft.Web.Administration">
+      <HintPath>$(WinDir)\System32\inetsrv\Microsoft.Web.Administration.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>

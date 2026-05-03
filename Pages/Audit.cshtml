@@ -1,0 +1,58 @@
+@page "{p:int?}"
+@model AuditModel
+@{
+    ViewData["Title"] = "Audit log";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h1 class="h4 m-0">Audit log</h1>
+    <small class="text-muted">All timestamps are UTC</small>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-sm table-striped align-middle">
+        <thead>
+            <tr>
+                <th class="text-nowrap">Timestamp</th>
+                <th>User</th>
+                <th>IP</th>
+                <th>Action</th>
+                <th>Pool</th>
+                <th>Result</th>
+                <th>Message</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var l in Model.Logs)
+            {
+                <tr>
+                    <td class="text-nowrap"><small>@l.TimestampUtc.ToString("yyyy-MM-dd HH:mm:ss")</small></td>
+                    <td class="text-break">@l.UserName</td>
+                    <td><small class="text-break">@l.IpAddress</small></td>
+                    <td>@l.Action</td>
+                    <td class="text-break">@l.AppPool</td>
+                    <td><span class="badge text-bg-@(l.Success ? "success" : "danger")">@(l.Success ? "OK" : "Fail")</span></td>
+                    <td class="text-break"><small>@l.Message</small></td>
+                </tr>
+            }
+            @if (!Model.Logs.Any())
+            {
+                <tr><td colspan="7" class="text-muted text-center py-3">No audit entries.</td></tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@if (Model.TotalPages > 1)
+{
+    <nav aria-label="Audit pages">
+        <ul class="pagination pagination-sm flex-wrap">
+            @for (int i = Math.Max(1, Model.CurrentPage - 3); i <= Math.Min(Model.TotalPages, Model.CurrentPage + 3); i++)
+            {
+                <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                    <a class="page-link" asp-route-p="@i">@i</a>
+                </li>
+            }
+        </ul>
+    </nav>
+}

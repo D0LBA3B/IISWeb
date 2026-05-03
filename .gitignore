@@ -1,0 +1,16 @@
+bin/
+obj/
+out/
+publish/
+App_Data/
+*.user
+*.suo
+*.db
+*.db-shm
+*.db-wal
+.vs/
+.idea/
+appsettings.Production.json
+appsettings.Local.json
+*.log
+logs/

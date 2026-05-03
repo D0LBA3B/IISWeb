@@ -1,0 +1,100 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Application Pools";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h1 class="h4 m-0">Application Pools</h1>
+    <form method="get" class="m-0">
+        <button class="btn btn-outline-secondary btn-sm" type="submit">Refresh</button>
+    </form>
+</div>
+
+@if (Model.Status is { } status)
+{
+    <div class="alert alert-@(status.Success ? "success" : "danger") alert-dismissible fade show" role="alert">
+        <strong>@status.Title</strong> @status.Message
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (Model.LoadError is { } err)
+{
+    <div class="alert alert-danger" role="alert">
+        <strong>Error:</strong> @err
+    </div>
+}
+
+@if (!Model.Pools.Any() && Model.LoadError is null)
+{
+    <p class="text-muted">No application pools to display. Check the <code>App:AllowedAppPools</code> configuration in <code>appsettings.json</code> and that this app has IIS administration rights.</p>
+}
+else
+{
+    <div class="row g-3">
+    @foreach (var p in Model.Pools)
+    {
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h2 class="h6 mb-2 text-break">@p.Name</h2>
+                    <div class="mb-3">
+                        <span class="badge text-bg-@StateBadge(p.State)">@p.State</span>
+                        <small class="text-muted ms-2 d-inline-block">
+                            @(string.IsNullOrEmpty(p.ManagedRuntimeVersion) ? "No managed code" : p.ManagedRuntimeVersion)
+                            · @p.IdentityType
+                        </small>
+                    </div>
+
+                    @if (User.IsInRole(Roles.Admin))
+                    {
+                        <div class="d-flex flex-wrap gap-2">
+                            <form method="post" asp-page-handler="Start" class="m-0 flex-grow-1 flex-md-grow-0"
+                                  data-confirm="Start pool '@p.Name' ?">
+                                <input type="hidden" name="name" value="@p.Name" />
+                                <button class="btn btn-success btn-sm w-100" type="submit"
+                                        @(IsRunning(p.State) ? "disabled" : "")>Start</button>
+                            </form>
+                            <form method="post" asp-page-handler="Stop" class="m-0 flex-grow-1 flex-md-grow-0"
+                                  data-confirm="Stop pool '@p.Name' ?&#10;Applications served by this pool will become unavailable.">
+                                <input type="hidden" name="name" value="@p.Name" />
+                                <button class="btn btn-danger btn-sm w-100" type="submit"
+                                        @(IsStopped(p.State) ? "disabled" : "")>Stop</button>
+                            </form>
+                            <form method="post" asp-page-handler="Recycle" class="m-0 flex-grow-1 flex-md-grow-0"
+                                  data-confirm="Recycle pool '@p.Name' ?&#10;In-flight requests may be interrupted.">
+                                <input type="hidden" name="name" value="@p.Name" />
+                                <button class="btn btn-warning btn-sm w-100" type="submit"
+                                        @(p.State != "Started" ? "disabled" : "")>Recycle</button>
+                            </form>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted small mb-0">View only.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+    </div>
+}
+
+@section Scripts {
+    <script src="~/js/confirm.js" asp-append-version="true"></script>
+}
+
+@functions {
+    static string StateBadge(string s) => s switch
+    {
+        "Started"  => "success",
+        "Starting" => "info",
+        "Stopping" => "warning",
+        "Stopped"  => "secondary",
+        _          => "dark"
+    };
+
+    static bool IsRunning(string s) => s == "Started" || s == "Starting";
+    static bool IsStopped(string s) => s == "Stopped" || s == "Stopping";
+}
